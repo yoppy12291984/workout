@@ -1,6 +1,4 @@
 <meta charset="utf-8">
-<!-- redeploy trigger -->
-<!-- retry 2 -->
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Workout">
@@ -141,6 +139,7 @@
   <button id="manageBtn">項目を管理</button>
   <button id="groupBtn">グループを管理</button>
   <button id="resetDay">今日のチェックをクリア</button>
+  <button id="resetAll" style="border-color:#e2523a;color:#e2523a">初期項目に戻す</button>
 </div>
 
 <dialog id="addDlg">
@@ -203,39 +202,35 @@
 <script>
 const WD=["日","月","火","水","木","金","土"];
 const DEFAULT_GROUPS=[
-  {id:"chest",name:"胸",sub:"chest",color:"#e0a458"},
   {id:"back",name:"背中",sub:"back",color:"#5fb3a3"},
   {id:"legs",name:"脚",sub:"legs",color:"#d4795f"},
   {id:"shoulder",name:"肩",sub:"shoulder",color:"#7fa8d6"},
   {id:"arm",name:"腕",sub:"arms",color:"#b98cd6"},
   {id:"core",name:"体幹",sub:"core",color:"#6bbf78"},
   {id:"cardio",name:"有酸素",sub:"cardio",color:"#5fb3d6"},
-  {id:"home",name:"自宅",sub:"home",color:"#c9a14a"},
+  {id:"stretch",name:"ストレッチ",sub:"stretch",color:"#e0a458"},
   {id:"other",name:"その他",sub:"other",color:"#8aa2b2"},
 ];
 const GROUP_COLORS=["#e0a458","#5fb3a3","#d4795f","#7fa8d6","#b98cd6","#6bbf78","#5fb3d6","#c9a14a","#e2823a","#7cc4b0","#d68fb0","#9ab86a","#c0985f","#8aa2b2"];
 const DEFAULTS=[
-  // 月曜：胸（ジム想定）
-  {label:"ベンチプレス",group:"chest",freq:"weekly",days:[1]},
-  {label:"ダンベルフライ",group:"chest",freq:"weekly",days:[1]},
-  {label:"腕立て伏せ",group:"chest",freq:"weekly",days:[1]},
-  // 火曜：背中
-  {label:"デッドリフト",group:"back",freq:"weekly",days:[2]},
-  {label:"ラットプルダウン",group:"back",freq:"weekly",days:[2]},
-  {label:"懸垂",group:"back",freq:"weekly",days:[2]},
-  // 水曜：脚
-  {label:"スクワット",group:"legs",freq:"weekly",days:[3]},
-  {label:"レッグプレス",group:"legs",freq:"weekly",days:[3]},
-  // 木曜：肩
-  {label:"ショルダープレス",group:"shoulder",freq:"weekly",days:[4]},
-  {label:"サイドレイズ",group:"shoulder",freq:"weekly",days:[4]},
-  // 金曜：腕
-  {label:"アームカール",group:"arm",freq:"weekly",days:[5]},
-  {label:"トライセプスエクステンション",group:"arm",freq:"weekly",days:[5]},
-  // 毎日：体幹・有酸素（自宅でもOK）
-  {label:"プランク",group:"core",freq:"everyday"},
-  {label:"腹筋ローラー",group:"core",freq:"everyday"},
-  {label:"ウォーキング／ジョギング",group:"cardio",freq:"everyday"},
+  // 背中
+  {label:"ラットプルダウン",group:"back",freq:"weekly",days:[2,4,0]},
+  // 脚
+  {label:"スクワット",group:"legs",freq:"weekly",days:[1,3,6]},
+  // 肩
+  {label:"サイドレイズ",group:"shoulder",freq:"weekly",days:[2,4,0]},
+  // 腕
+  {label:"トライセプスエクステンション",group:"arm",freq:"weekly",days:[2,4,0]},
+  // 体幹
+  {label:"プランク",group:"core",freq:"weekly",days:[1,3,6]},
+  // 有酸素
+  {label:"ウォーキング／ジョギング",group:"cardio",freq:"daily"},
+  // ストレッチ
+  {label:"ヘッドローリング",group:"stretch",freq:"everyday"},
+  {label:"チンタック",group:"stretch",freq:"everyday"},
+  {label:"万歳ストレッチ",group:"stretch",freq:"everyday"},
+  {label:"股関節のストレッチ",group:"stretch",freq:"everyday"},
+  {label:"距骨ストレッチ",group:"stretch",freq:"everyday"},
 ];
 const K_ITEMS="workout_items_v1",K_CHECKS="workout_checks_v1",K_DUTY="workout_duty_v1",K_URL="workout_gas_url",K_GROUPS="workout_groups_v1";
 
@@ -395,6 +390,14 @@ document.getElementById("todayBtn").onclick=()=>{cur=new Date();cur.setHours(0,0
 document.getElementById("datePick").onchange=e=>{const[y,m,da]=e.target.value.split("-").map(Number);cur=new Date(y,m-1,da);render();};
 document.getElementById("duty").onchange=e=>{duties[iso(cur)]=e.target.value;lset(K_DUTY,duties);pushSoon();};
 document.getElementById("resetDay").onclick=()=>{if(confirm("この日のチェックをすべて消しますか？")){delete checks[iso(cur)];lset(K_CHECKS,checks);render();pushSoon();}};
+document.getElementById("resetAll").onclick=()=>{
+  if(!confirm("項目とグループを初期状態に戻します。今の項目は消えます。よろしいですか？"))return;
+  items=DEFAULTS.map((d,i)=>({id:"d"+i+"_"+Math.random().toString(36).slice(2,7),...d}));
+  GROUPS=DEFAULT_GROUPS.map(g=>({...g}));
+  lset(K_ITEMS,items);lset(K_GROUPS,GROUPS);
+  render();pushSoon();
+  alert("初期項目に戻しました。同期している場合は他の端末にも反映されます。");
+};
 
 /* ---------- add / edit ---------- */
 const addDlg=document.getElementById("addDlg");
