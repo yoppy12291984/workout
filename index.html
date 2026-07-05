@@ -274,7 +274,7 @@ async function pull(){
       if(Array.isArray(s.items)&&s.items.length){items=s.items;lset(K_ITEMS,items);}
       if(s.checks){checks=s.checks;lset(K_CHECKS,checks);}
       if(s.duties){duties=s.duties;lset(K_DUTY,duties);}
-      calItems=Array.isArray(s.calItems)?s.calItems:[];   // カレンダー予定（保存しない）
+      if(Array.isArray(s.groups)&&s.groups.length){GROUPS=s.groups;lset(K_GROUPS,GROUPS);}
       setSync("ok","同期済み "+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}));
       render();
     }else{setSync("err","応答エラー");}
@@ -293,7 +293,7 @@ async function push(){
   setSync("busy","保存中…");
   try{
     await fetch(gasUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({items,checks,duties})});
+      body:JSON.stringify({items,checks,duties,groups:GROUPS})});
     pendingPush=false;
     setSync("ok","保存済み "+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}));
   }catch(e){setSync("err","保存失敗（後で再送）");}
