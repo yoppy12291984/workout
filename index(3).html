@@ -1,0 +1,483 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Workout">
+<title>Daily Workout</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230f1922' stroke='%235fb3a3' stroke-width='4'/%3E%3Cpath d='M50 18 A32 32 0 1 1 18 50' fill='none' stroke='%23e0a458' stroke-width='10' stroke-linecap='round'/%3E%3Cpolyline points='12,42 18,50 26,40' fill='none' stroke='%23e0a458' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpolyline points='35,50 46,62 66,38' fill='none' stroke='%235fb3a3' stroke-width='9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root{
+    --bg:#181210;--panel:#241a16;--panel2:#31241d;--line:#43312a;
+    --ink:#f4ece7;--ink-dim:#b39a8d;--ink-faint:#7d685e;
+    --accent:#f0873f;--accent2:#e2523a;--family:#d99b6c;--done:#5a3f32;--danger:#d4795f;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+    --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  body{max-width:760px;margin:0 auto;padding:18px 14px 90px}
+
+  .syncbar{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;
+    color:var(--ink-faint);margin-bottom:14px;min-height:18px}
+  .syncdot{width:7px;height:7px;border-radius:50%;background:var(--ink-faint);flex:none}
+  .syncdot.ok{background:var(--accent2)}.syncdot.err{background:var(--danger)}.syncdot.busy{background:var(--accent)}
+  .syncbar .cfg{margin-left:auto;color:var(--ink-dim);cursor:pointer;text-decoration:underline}
+
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .datewrap{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .dnum{font-family:var(--mono);font-size:50px;line-height:.9;font-weight:600;letter-spacing:-1px}
+  .dmeta{display:flex;flex-direction:column;gap:2px}
+  .dym{font-family:var(--mono);font-size:13px;color:var(--ink-dim);letter-spacing:.5px}
+  .dwd{font-size:17px;font-weight:700}
+  .dwd .wd{padding:1px 9px;border-radius:20px;font-size:13px;margin-left:6px}
+  .controls{display:flex;gap:7px;align-items:center}
+  input[type=date]{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    font-family:var(--mono);font-size:13px;padding:7px 9px;border-radius:9px;color-scheme:dark}
+  button.nav,button.today{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    font-size:14px;padding:8px 12px;border-radius:9px;cursor:pointer;font-family:var(--mono)}
+  button.today{color:var(--accent);border-color:var(--accent)}
+  button.nav:active,button.today:active{background:var(--panel2)}
+
+  .dutybar{display:flex;align-items:center;gap:9px;margin:16px 0 4px;flex-wrap:wrap}
+  .dutybar label{font-size:12px;color:var(--ink-faint);letter-spacing:.5px}
+  .dutybar select{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    padding:7px 11px;border-radius:8px;font-size:14px;font-family:var(--sans)}
+  .streak{font-family:var(--mono);font-size:12px;color:var(--accent2)}
+
+  .prog{margin:16px 0 22px}
+  .progtrack{height:8px;background:var(--panel);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+  .progfill{height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .35s ease}
+  .proglabel{display:flex;justify-content:space-between;margin-top:7px;font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+
+  .group{margin-bottom:22px}
+  .ghead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .gdot{width:9px;height:9px;border-radius:3px;flex:none}
+  .gname{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+  .gsub{font-size:11px;color:var(--ink-faint);font-family:var(--mono)}
+  .gline{flex:1;height:1px;background:var(--line)}
+
+  ul{list-style:none}
+  li.item{display:flex;align-items:center;gap:13px;background:var(--panel);border:1px solid var(--line);
+    border-radius:11px;padding:14px 15px;margin-bottom:7px;cursor:pointer;transition:background .15s,transform .05s}
+  li.item:active{transform:scale(.997);background:var(--panel2)}
+  .check{width:24px;height:24px;border-radius:7px;border:2px solid var(--ink-faint);flex:none;display:grid;place-items:center;transition:.15s}
+  .check svg{width:14px;height:14px;opacity:0;transform:scale(.6);transition:.15s}
+  li.done .check{background:var(--done);border-color:var(--done)}
+  li.done .check svg{opacity:1;transform:scale(1)}
+  .label{font-size:15px;flex:1;line-height:1.4}
+  li.done .label{color:var(--ink-faint);text-decoration:line-through}
+  .freq{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;border:1px solid var(--line);color:var(--ink-dim);flex:none}
+  .empty{color:var(--ink-faint);font-size:14px;padding:18px;text-align:center;border:1px dashed var(--line);border-radius:11px}
+
+  .toolbar{display:flex;gap:8px;margin-top:26px;flex-wrap:wrap}
+  .toolbar button{background:transparent;border:1px solid var(--line);color:var(--ink-dim);font-size:13px;padding:10px 14px;border-radius:9px;cursor:pointer;font-family:var(--sans)}
+  .toolbar button:active{color:var(--ink);border-color:var(--ink-faint)}
+
+  dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:0;max-width:520px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  dialog::backdrop{background:rgba(5,10,14,.66)}
+  .dlg-h{padding:18px 20px 6px;font-size:16px;font-weight:700}
+  .dlg-b{padding:8px 20px 4px;max-height:62vh;overflow:auto}
+  .dlg-f{padding:14px 20px 18px;display:flex;gap:8px;justify-content:flex-end}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12px;color:var(--ink-dim);margin-bottom:5px}
+  .field input,.field select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);padding:10px 11px;border-radius:8px;font-size:15px;font-family:var(--sans)}
+  .row2{display:flex;gap:10px}.row2>*{flex:1}
+  .wd-pick{display:flex;gap:5px;flex-wrap:wrap}
+  .wd-pick span{padding:8px 12px;border:1px solid var(--line);border-radius:7px;font-size:14px;cursor:pointer;font-family:var(--mono);color:var(--ink-dim)}
+  .wd-pick span.on{background:var(--accent2);border-color:var(--accent2);color:#04201b;font-weight:700}
+  .btn-primary{background:var(--accent);color:#241200;border:none;font-weight:700;padding:10px 16px;border-radius:9px;cursor:pointer;font-size:14px}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink-dim);padding:10px 14px;border-radius:9px;cursor:pointer;font-size:14px}
+  .manage-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .manage-item .mlabel{flex:1;font-size:14px}
+  .manage-item .mmeta{font-family:var(--mono);font-size:11px;color:var(--ink-faint)}
+  .manage-item .del{background:transparent;border:none;color:var(--danger);cursor:pointer;font-size:20px;padding:0 4px}
+  .manage-item .edit{background:transparent;border:1px solid var(--line);color:var(--accent2);cursor:pointer;font-size:12px;padding:5px 10px;border-radius:7px}
+  .manage-item .edit:active{background:var(--panel2)}
+  .hint{font-size:12px;color:var(--ink-faint);margin:2px 0 14px;line-height:1.6}
+</style>
+
+<div class="syncbar">
+  <span class="syncdot" id="syncdot"></span>
+  <span id="syncmsg">未接続</span>
+  <span class="cfg" id="cfgLink">同期設定</span>
+</div>
+
+<div class="top">
+  <div class="datewrap">
+    <div class="dnum" id="dnum">--</div>
+    <div class="dmeta">
+      <div class="dym" id="dym">----.--</div>
+      <div class="dwd" id="dwd">—<span class="wd" id="wdtag"></span></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="nav" id="prev">‹</button>
+    <button class="today" id="todayBtn">今日</button>
+    <button class="nav" id="next">›</button>
+    <input type="date" id="datePick">
+  </div>
+</div>
+
+<div class="dutybar">
+  <label>今日の場所</label>
+  <select id="duty">
+    <option value="">—</option>
+    <option>ジム</option><option>自宅</option><option>休養日</option>
+  </select>
+  <span class="streak" id="streak"></span>
+</div>
+
+<div class="prog">
+  <div class="progtrack"><div class="progfill" id="progfill"></div></div>
+  <div class="proglabel"><span id="progtxt">0 / 0 完了</span><span id="progpct">0%</span></div>
+</div>
+
+<div id="groups"></div>
+
+<div class="toolbar">
+  <button id="addBtn">＋ 項目を追加</button>
+  <button id="manageBtn">項目を管理</button>
+  <button id="resetDay">今日のチェックをクリア</button>
+</div>
+
+<dialog id="addDlg">
+  <div class="dlg-h" id="addDlgTitle">項目を追加</div>
+  <div class="dlg-b">
+    <div class="field"><label>種目名</label><input id="f_label" placeholder="例：ベンチプレス"></div>
+    <div class="row2">
+      <div class="field"><label>グループ</label>
+        <select id="f_group">
+          <option value="chest">胸</option><option value="back">背中</option>
+          <option value="legs">脚</option><option value="shoulder">肩</option>
+          <option value="arm">腕</option><option value="core">体幹</option>
+          <option value="cardio">有酸素</option><option value="home">自宅</option>
+          <option value="other">その他</option>
+        </select></div>
+      <div class="field"><label>頻度</label>
+        <select id="f_freq" onchange="onFreqChange()">
+          <option value="daily">毎日（平日）</option><option value="everyday">毎日（土日含む）</option>
+          <option value="weekly">毎週（曜日指定）</option><option value="monthly">毎月（日付範囲）</option>
+          <option value="yearly">毎年（月日の範囲）</option>
+          <option value="once">特定の日付（単発）</option>
+        </select></div>
+    </div>
+    <div class="field" id="wdField" style="display:none"><label>曜日（複数可）</label><div class="wd-pick" id="wdPick"></div></div>
+    <div class="field" id="domField" style="display:none"><label>日付範囲（毎月 / 1〜31）</label>
+      <div class="row2"><input id="f_dom1" type="number" min="1" max="31" placeholder="開始 例：25"><input id="f_dom2" type="number" min="1" max="31" placeholder="終了 例：30"></div></div>
+    <div class="field" id="ymdField" style="display:none"><label>月日の範囲（毎年）</label>
+      <div class="row2">
+        <div class="row2"><input id="f_ym1" type="number" min="1" max="12" placeholder="開始月 例：6"><input id="f_yd1" type="number" min="1" max="31" placeholder="開始日 例：14"></div>
+        <div class="row2"><input id="f_ym2" type="number" min="1" max="12" placeholder="終了月 例：6"><input id="f_yd2" type="number" min="1" max="31" placeholder="終了日 例：30"></div>
+      </div></div>
+    <div class="field" id="onceField" style="display:none"><label>日付（特定の1日）</label>
+      <input id="f_once" type="date"></div>
+    <p class="hint">「毎週」で曜日、「毎月」で日付範囲、「毎年」で月日の範囲、「特定の日付」で1日だけ指定できます。土日が休みでも、各指定はそのとおり出ます。</p>
+  </div>
+  <div class="dlg-f"><button class="btn-ghost" onclick="editingId=null;addDlg.close()">キャンセル</button><button class="btn-primary" id="saveItem">保存</button></div>
+</dialog>
+
+<dialog id="manageDlg">
+  <div class="dlg-h">項目を管理</div>
+  <div class="dlg-b" id="manageList"></div>
+  <div class="dlg-f"><button class="btn-primary" onclick="manageDlg.close()">閉じる</button></div>
+</dialog>
+
+<dialog id="cfgDlg">
+  <div class="dlg-h">同期設定</div>
+  <div class="dlg-b">
+    <p class="hint">Googleスプレッドシートで作った「ウェブアプリのURL」を貼り付けてください。PCとスマホで同じURLを入れると、チェックが連動します。</p>
+    <div class="field"><label>ウェブアプリ URL</label><input id="f_url" placeholder="https://script.google.com/macros/s/..../exec"></div>
+    <p class="hint" id="cfgStatus"></p>
+  </div>
+  <div class="dlg-f"><button class="btn-ghost" onclick="cfgDlg.close()">閉じる</button><button class="btn-primary" id="saveUrl">接続して同期</button></div>
+</dialog>
+
+<script>
+const WD=["日","月","火","水","木","金","土"];
+const GROUPS=[
+  {id:"chest",name:"胸",sub:"chest",color:"#e0a458"},
+  {id:"back",name:"背中",sub:"back",color:"#5fb3a3"},
+  {id:"legs",name:"脚",sub:"legs",color:"#d4795f"},
+  {id:"shoulder",name:"肩",sub:"shoulder",color:"#7fa8d6"},
+  {id:"arm",name:"腕",sub:"arms",color:"#b98cd6"},
+  {id:"core",name:"体幹",sub:"core",color:"#6bbf78"},
+  {id:"cardio",name:"有酸素",sub:"cardio",color:"#5fb3d6"},
+  {id:"home",name:"自宅",sub:"home",color:"#c9a14a"},
+  {id:"other",name:"その他",sub:"other",color:"#8aa2b2"},
+];
+const DEFAULTS=[
+  // 月曜：胸（ジム想定）
+  {label:"ベンチプレス",group:"chest",freq:"weekly",days:[1]},
+  {label:"ダンベルフライ",group:"chest",freq:"weekly",days:[1]},
+  {label:"腕立て伏せ",group:"chest",freq:"weekly",days:[1]},
+  // 火曜：背中
+  {label:"デッドリフト",group:"back",freq:"weekly",days:[2]},
+  {label:"ラットプルダウン",group:"back",freq:"weekly",days:[2]},
+  {label:"懸垂",group:"back",freq:"weekly",days:[2]},
+  // 水曜：脚
+  {label:"スクワット",group:"legs",freq:"weekly",days:[3]},
+  {label:"レッグプレス",group:"legs",freq:"weekly",days:[3]},
+  // 木曜：肩
+  {label:"ショルダープレス",group:"shoulder",freq:"weekly",days:[4]},
+  {label:"サイドレイズ",group:"shoulder",freq:"weekly",days:[4]},
+  // 金曜：腕
+  {label:"アームカール",group:"arm",freq:"weekly",days:[5]},
+  {label:"トライセプスエクステンション",group:"arm",freq:"weekly",days:[5]},
+  // 毎日：体幹・有酸素（自宅でもOK）
+  {label:"プランク",group:"core",freq:"everyday"},
+  {label:"腹筋ローラー",group:"core",freq:"everyday"},
+  {label:"ウォーキング／ジョギング",group:"cardio",freq:"everyday"},
+];
+const K_ITEMS="workout_items_v1",K_CHECKS="workout_checks_v1",K_DUTY="workout_duty_v1",K_URL="workout_gas_url";
+
+function load(k,fb){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch(e){return fb;}}
+function lset(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+let items=load(K_ITEMS,null);
+if(!items){items=DEFAULTS.map((d,i)=>({id:"d"+i+"_"+Math.random().toString(36).slice(2,7),...d}));lset(K_ITEMS,items);}
+let checks=load(K_CHECKS,{}),duties=load(K_DUTY,{}),gasUrl=load(K_URL,"");
+let calItems=[];   // カレンダー由来（GASが正・ローカル保存もpushもしない）
+let cur=new Date();cur.setHours(0,0,0,0);
+let syncTimer=null;
+let pendingPush=false;     // ローカル変更が未送信
+let pushing=false;         // push実行中
+let lastLocalEdit=0;       // 最後にローカル操作した時刻
+
+/* ---------- sync ---------- */
+function setSync(state,msg){
+  const d=document.getElementById("syncdot");d.className="syncdot"+(state?" "+state:"");
+  document.getElementById("syncmsg").textContent=msg;
+}
+// ローカル操作の直後はサーバー取得で上書きしない（2回押し問題の防止）
+function localBusy(){return pendingPush||pushing||(Date.now()-lastLocalEdit<2000);}
+async function pull(){
+  if(!gasUrl){setSync("","ローカル保存のみ（同期設定でPC↔スマホ連動）");return;}
+  if(localBusy())return;                 // 未送信のローカル変更があれば取得しない
+  setSync("busy","同期中…");
+  try{
+    const r=await fetch(gasUrl,{method:"GET"});
+    const j=await r.json();
+    if(localBusy())return;               // 取得中に操作が入ったら結果は破棄
+    if(j&&j.ok&&j.state){
+      const s=j.state;
+      if(Array.isArray(s.items)&&s.items.length){items=s.items;lset(K_ITEMS,items);}
+      if(s.checks){checks=s.checks;lset(K_CHECKS,checks);}
+      if(s.duties){duties=s.duties;lset(K_DUTY,duties);}
+      calItems=Array.isArray(s.calItems)?s.calItems:[];   // カレンダー予定（保存しない）
+      setSync("ok","同期済み "+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}));
+      render();
+    }else{setSync("err","応答エラー");}
+  }catch(e){setSync("err","オフライン（ローカルに保存中）");}
+}
+function pushSoon(){
+  lastLocalEdit=Date.now();
+  pendingPush=true;
+  if(!gasUrl)return;
+  clearTimeout(syncTimer);
+  syncTimer=setTimeout(push,600);
+}
+async function push(){
+  if(!gasUrl){pendingPush=false;return;}
+  pushing=true;
+  setSync("busy","保存中…");
+  try{
+    await fetch(gasUrl,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({items,checks,duties})});
+    pendingPush=false;
+    setSync("ok","保存済み "+new Date().toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit"}));
+  }catch(e){setSync("err","保存失敗（後で再送）");}
+  finally{pushing=false;}
+}
+
+/* ---------- logic ---------- */
+function allItems(){return calItems.length?items.concat(calItems):items;}
+function dueToday(it,d){
+  const wd=d.getDay(),dom=d.getDate(),weekend=(wd===0||wd===6);
+  if(it.freq==="everyday")return true;
+  if(it.freq==="daily")return !weekend;
+  if(it.freq==="weekly")return(it.days||[]).includes(wd);
+  if(it.freq==="monthly"){const[a,b]=it.dom||[1,31];return dom>=a&&dom<=b;}
+  if(it.freq==="yearly"){
+    const ymd=it.ymd; if(!ymd)return false;
+    const mmdd=(d.getMonth()+1)*100+dom;        // 今日のMMDD
+    const a=ymd[0]*100+ymd[1], b=ymd[2]*100+ymd[3];  // 開始MMDD・終了MMDD
+    return a<=b ? (mmdd>=a&&mmdd<=b) : (mmdd>=a||mmdd<=b); // 年またぎ対応
+  }
+  if(it.freq==="once")return it.once===iso(d);
+  return false;
+}
+function freqLabel(it){
+  if(it.freq==="everyday")return"毎日";
+  if(it.freq==="daily")return"平日";
+  if(it.freq==="weekly")return(it.days||[]).map(x=>WD[x]).join("・");
+  if(it.freq==="monthly")return`${(it.dom||[])[0]}–${(it.dom||[])[1]}日`;
+  if(it.freq==="yearly"){const y=it.ymd||[];return`毎年${y[0]}/${y[1]}–${y[2]}/${y[3]}`;}
+  if(it.freq==="once"){const o=(it.once||"").split("-");return o.length===3?`${+o[1]}/${+o[2]}`:"単発";}
+  return"";
+}
+function render(){
+  const key=iso(cur);
+  document.getElementById("dnum").textContent=cur.getDate();
+  document.getElementById("dym").textContent=cur.getFullYear()+"."+String(cur.getMonth()+1).padStart(2,"0");
+  const wd=cur.getDay(),names=["日曜","月曜","火曜","水曜","木曜","金曜","土曜"];
+  document.getElementById("dwd").firstChild.textContent=names[wd];
+  const tag=document.getElementById("wdtag");tag.textContent=WD[wd];
+  tag.style.background=(wd===0)?"#3a1f1a":(wd===6)?"#31241d":"#31241d";
+  tag.style.color=(wd===0)?"#e2523a":(wd===6)?"#d99b6c":"#f0873f";
+  document.getElementById("datePick").value=key;
+  document.getElementById("duty").value=duties[key]||"";
+
+  const dayChecks=checks[key]||{};
+  const due=allItems().filter(it=>dueToday(it,cur));
+  const cont=document.getElementById("groups");cont.innerHTML="";
+  let total=0,done=0;
+  GROUPS.forEach(gr=>{
+    const list=due.filter(it=>it.group===gr.id);if(!list.length)return;
+    const wrap=document.createElement("div");wrap.className="group";
+    const h=document.createElement("div");h.className="ghead";
+    h.innerHTML=`<span class="gdot" style="background:${gr.color}"></span>
+      <span class="gname" style="color:${gr.color}">${gr.name}</span>
+      <span class="gsub">${gr.sub}</span><span class="gline"></span>`;
+    wrap.appendChild(h);
+    const ul=document.createElement("ul");
+    list.forEach(it=>{
+      total++;const isDone=!!dayChecks[it.id];if(isDone)done++;
+      const li=document.createElement("li");li.className="item"+(isDone?" done":"");
+      const badge=it.cal?(it.note||"予定"):(it.freq!=="daily"?freqLabel(it):"");
+      li.innerHTML=`<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="#cfe">
+        <path d="M5 12l5 5L20 6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="label">${esc(it.label)}</span>
+        ${badge?`<span class="freq">${esc(badge)}</span>`:""}`;
+      li.onclick=()=>toggle(key,it.id);
+      ul.appendChild(li);
+    });
+    wrap.appendChild(ul);cont.appendChild(wrap);
+  });
+  if(total===0)cont.innerHTML='<div class="empty">この日のメニューはありません。休養日にしましょう。</div>';
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById("progfill").style.width=pct+"%";
+  document.getElementById("progtxt").textContent=`${done} / ${total} 完了`;
+  document.getElementById("progpct").textContent=pct+"%";
+  document.getElementById("streak").textContent="🔥 連続 "+streak()+"日";
+}
+function toggle(key,id){
+  if(!checks[key])checks[key]={};
+  if(checks[key][id])delete checks[key][id];else checks[key][id]=true;
+  if(!Object.keys(checks[key]).length)delete checks[key];
+  lset(K_CHECKS,checks);render();pushSoon();
+}
+function streak(){
+  let n=0;const d=new Date();d.setHours(0,0,0,0);
+  for(let i=0;i<400;i++){
+    const due=allItems().filter(it=>dueToday(it,d));
+    if(due.length){const dc=checks[iso(d)]||{};if(!due.every(it=>dc[it.id]))break;n++;}
+    d.setDate(d.getDate()-1);
+  }return n;
+}
+
+/* ---------- nav ---------- */
+document.getElementById("prev").onclick=()=>{cur.setDate(cur.getDate()-1);render();};
+document.getElementById("next").onclick=()=>{cur.setDate(cur.getDate()+1);render();};
+document.getElementById("todayBtn").onclick=()=>{cur=new Date();cur.setHours(0,0,0,0);render();};
+document.getElementById("datePick").onchange=e=>{const[y,m,da]=e.target.value.split("-").map(Number);cur=new Date(y,m-1,da);render();};
+document.getElementById("duty").onchange=e=>{duties[iso(cur)]=e.target.value;lset(K_DUTY,duties);pushSoon();};
+document.getElementById("resetDay").onclick=()=>{if(confirm("この日のチェックをすべて消しますか？")){delete checks[iso(cur)];lset(K_CHECKS,checks);render();pushSoon();}};
+
+/* ---------- add / edit ---------- */
+const addDlg=document.getElementById("addDlg");
+let editingId=null;   // null=新規追加、idがあれば編集
+
+function openForm(it){
+  editingId = it ? it.id : null;
+  document.getElementById("addDlgTitle").textContent = it ? "項目を編集" : "項目を追加";
+  document.getElementById("f_label").value = it ? it.label : "";
+  document.getElementById("f_group").value = it ? it.group : "chest";
+  document.getElementById("f_freq").value  = it ? it.freq  : "daily";
+  buildWd();
+  if(it && it.freq==="weekly"){
+    document.querySelectorAll("#wdPick span").forEach(s=>{
+      if((it.days||[]).includes(+s.dataset.w))s.classList.add("on");
+    });
+  }
+  document.getElementById("f_dom1").value = (it && it.dom) ? it.dom[0] : "";
+  document.getElementById("f_dom2").value = (it && it.dom) ? it.dom[1] : "";
+  document.getElementById("f_ym1").value = (it && it.ymd) ? it.ymd[0] : "";
+  document.getElementById("f_yd1").value = (it && it.ymd) ? it.ymd[1] : "";
+  document.getElementById("f_ym2").value = (it && it.ymd) ? it.ymd[2] : "";
+  document.getElementById("f_yd2").value = (it && it.ymd) ? it.ymd[3] : "";
+  document.getElementById("f_once").value = (it && it.once) ? it.once : "";
+  onFreqChange();
+  addDlg.showModal();
+}
+document.getElementById("addBtn").onclick=()=>openForm(null);
+function buildWd(){const p=document.getElementById("wdPick");p.innerHTML="";[1,2,3,4,5,6,0].forEach(w=>{const s=document.createElement("span");s.textContent=WD[w];s.dataset.w=w;s.onclick=()=>s.classList.toggle("on");p.appendChild(s);});}
+function onFreqChange(){const f=document.getElementById("f_freq").value;document.getElementById("wdField").style.display=(f==="weekly")?"block":"none";document.getElementById("domField").style.display=(f==="monthly")?"block":"none";document.getElementById("ymdField").style.display=(f==="yearly")?"block":"none";document.getElementById("onceField").style.display=(f==="once")?"block":"none";}
+document.getElementById("saveItem").onclick=()=>{
+  const label=document.getElementById("f_label").value.trim();if(!label){alert("タスク名を入力してください");return;}
+  const freq=document.getElementById("f_freq").value;
+  const data={label,group:document.getElementById("f_group").value,freq};
+  if(freq==="weekly"){data.days=[...document.querySelectorAll("#wdPick .on")].map(s=>+s.dataset.w);if(!data.days.length){alert("曜日を選んでください");return;}}
+  if(freq==="monthly"){const a=+document.getElementById("f_dom1").value||1,b=+document.getElementById("f_dom2").value||a;data.dom=[Math.min(a,b),Math.max(a,b)];}
+  if(freq==="yearly"){
+    const m1=+document.getElementById("f_ym1").value,d1=+document.getElementById("f_yd1").value,
+          m2=+document.getElementById("f_ym2").value,d2=+document.getElementById("f_yd2").value;
+    if(!m1||!d1||!m2||!d2){alert("開始月日・終了月日をすべて入力してください");return;}
+    data.ymd=[m1,d1,m2,d2];
+  }
+  if(freq==="once"){const o=document.getElementById("f_once").value;if(!o){alert("日付を選んでください");return;}data.once=o;}
+  if(editingId){
+    const it=items.find(x=>x.id===editingId);
+    if(it){it.label=data.label;it.group=data.group;it.freq=data.freq;
+      it.days=data.days;it.dom=data.dom;it.ymd=data.ymd;it.once=data.once;
+      if(freq!=="weekly")delete it.days;
+      if(freq!=="monthly")delete it.dom;
+      if(freq!=="yearly")delete it.ymd;
+      if(freq!=="once")delete it.once;}
+  }else{
+    items.push({id:"u"+Date.now().toString(36),...data});
+  }
+  lset(K_ITEMS,items);addDlg.close();editingId=null;render();pushSoon();
+  if(manageDlg.open)buildManage();
+};
+
+/* ---------- manage ---------- */
+const manageDlg=document.getElementById("manageDlg");
+document.getElementById("manageBtn").onclick=()=>{buildManage();manageDlg.showModal();};
+function buildManage(){
+  const c=document.getElementById("manageList");c.innerHTML="";
+  GROUPS.forEach(gr=>{
+    const list=items.filter(it=>it.group===gr.id);if(!list.length)return;
+    const h=document.createElement("div");h.style.cssText="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:"+gr.color+";margin:12px 0 4px;font-weight:700";h.textContent=gr.name;c.appendChild(h);
+    list.forEach(it=>{
+      const row=document.createElement("div");row.className="manage-item";
+      row.innerHTML=`<span class="mlabel">${esc(it.label)}</span><span class="mmeta">${freqLabel(it)}</span><button class="edit">編集</button><button class="del">×</button>`;
+      row.querySelector(".edit").onclick=()=>openForm(it);
+      row.querySelector(".del").onclick=()=>{if(confirm("「"+it.label+"」を削除しますか？")){items=items.filter(x=>x.id!==it.id);lset(K_ITEMS,items);buildManage();render();pushSoon();}};
+      c.appendChild(row);
+    });
+  });
+}
+
+/* ---------- config ---------- */
+const cfgDlg=document.getElementById("cfgDlg");
+document.getElementById("cfgLink").onclick=()=>{document.getElementById("f_url").value=gasUrl||"";document.getElementById("cfgStatus").textContent="";cfgDlg.showModal();};
+document.getElementById("saveUrl").onclick=async()=>{
+  const u=document.getElementById("f_url").value.trim();
+  if(!u){gasUrl="";lset(K_URL,"");cfgDlg.close();setSync("","ローカル保存のみ");return;}
+  document.getElementById("cfgStatus").textContent="接続テスト中…";
+  try{
+    const r=await fetch(u,{method:"GET"});const j=await r.json();
+    if(j&&j.ok){gasUrl=u;lset(K_URL,u);document.getElementById("cfgStatus").textContent="接続成功。同期します。";
+      // マージ：既存ローカルを一度プッシュしてから取得
+      await push();await pull();cfgDlg.close();}
+    else document.getElementById("cfgStatus").textContent="URLは届きましたが応答が想定外です。デプロイ設定を確認してください。";
+  }catch(e){document.getElementById("cfgStatus").textContent="接続できません。URLとアクセス権（全員）を確認してください。";}
+};
+
+/* ---------- boot ---------- */
+render();
+pull();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull();});
+</script>
