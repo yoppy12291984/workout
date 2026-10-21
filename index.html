@@ -238,7 +238,8 @@ const K_ITEMS="workout_items_v1",K_CHECKS="workout_checks_v1",K_DUTY="workout_du
 function load(k,fb){try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch(e){return fb;}}
 function lset(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
 function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
-function esc(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function safeColor(value){return /^#[0-9a-f]{6}$/i.test(String(value))?value:'#7f8cd6';}
+function esc(s){return String(s ?? "").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
 let items=load(K_ITEMS,null);
 if(!items){items=DEFAULTS.map((d,i)=>({id:"d"+i+"_"+Math.random().toString(36).slice(2,7),...d}));lset(K_ITEMS,items);}
@@ -344,9 +345,9 @@ function render(){
     const list=due.filter(it=>it.group===gr.id);if(!list.length)return;
     const wrap=document.createElement("div");wrap.className="group";
     const h=document.createElement("div");h.className="ghead";
-    h.innerHTML=`<span class="gdot" style="background:${gr.color}"></span>
-      <span class="gname" style="color:${gr.color}">${gr.name}</span>
-      <span class="gsub">${gr.sub}</span><span class="gline"></span>`;
+    h.innerHTML=`<span class="gdot" style="background:${safeColor(gr.color)}"></span>
+      <span class="gname" style="color:${safeColor(gr.color)}">${esc(gr.name)}</span>
+      <span class="gsub">${esc(gr.sub)}</span><span class="gline"></span>`;
     wrap.appendChild(h);
     const ul=document.createElement("ul");
     list.forEach(it=>{
@@ -469,10 +470,10 @@ function buildManage(){
   const c=document.getElementById("manageList");c.innerHTML="";
   GROUPS.forEach(gr=>{
     const list=items.filter(it=>it.group===gr.id);if(!list.length)return;
-    const h=document.createElement("div");h.style.cssText="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:"+gr.color+";margin:12px 0 4px;font-weight:700";h.textContent=gr.name;c.appendChild(h);
+    const h=document.createElement("div");h.style.cssText="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:"+safeColor(gr.color)+";margin:12px 0 4px;font-weight:700";h.textContent=gr.name;c.appendChild(h);
     list.forEach(it=>{
       const row=document.createElement("div");row.className="manage-item";
-      row.innerHTML=`<span class="mlabel">${esc(it.label)}</span><span class="mmeta">${freqLabel(it)}</span><button class="edit">編集</button><button class="del">×</button>`;
+      row.innerHTML=`<span class="mlabel">${esc(it.label)}</span><span class="mmeta">${esc(freqLabel(it))}</span><button class="edit">編集</button><button class="del">×</button>`;
       row.querySelector(".edit").onclick=()=>openForm(it);
       row.querySelector(".del").onclick=()=>{if(confirm("「"+it.label+"」を削除しますか？")){items=items.filter(x=>x.id!==it.id);lset(K_ITEMS,items);buildManage();render();pushSoon();}};
       c.appendChild(row);
@@ -493,7 +494,7 @@ function buildGroups(){
   GROUPS.forEach(gr=>{
     const count=items.filter(it=>it.group===gr.id).length;
     const row=document.createElement("div");row.className="manage-item";
-    row.innerHTML=`<span class="gdot" style="background:${gr.color};width:11px;height:11px;border-radius:3px"></span>
+    row.innerHTML=`<span class="gdot" style="background:${safeColor(gr.color)};width:11px;height:11px;border-radius:3px"></span>
       <input class="gname-in" value="${esc(gr.name)}" style="flex:1;background:var(--bg);border:1px solid var(--line);color:var(--ink);padding:7px 9px;border-radius:7px;font-size:14px">
       <span class="mmeta">${count}種目</span>
       <button class="edit gsave">保存</button><button class="del">×</button>`;
